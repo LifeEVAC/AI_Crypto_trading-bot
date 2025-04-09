@@ -1,3 +1,4 @@
+# okx_trade.py
 import ccxt
 import os
 import time
@@ -10,11 +11,23 @@ def create_okx_client():
         'password': os.getenv("OKX_API_PASSWORD"),
         'enableRateLimit': True,
         'options': {
-            'defaultType': 'spot',  # 也可以改成 margin, future, swap
+            'defaultType': 'spot',  # or 'swap' for futures
         }
     })
 
-# ✅ 市價下單：做多用 "buy"，做空用 "sell"
+# ✅ 查詢餘額
+def check_balance(asset="USDT"):
+    try:
+        exchange = create_okx_client()
+        balance = exchange.fetch_balance()
+        free = balance.get(asset, {}).get("free", 0)
+        print(f"💰 可用 {asset} 餘額：{round(free, 4)}")
+        return free
+    except Exception as e:
+        print(f"⚠️ 餘額查詢失敗：{e}")
+        return 0
+
+# ✅ 市價下單
 def place_order(symbol="BTC/USDT", side="buy", amount=0.001):
     try:
         exchange = create_okx_client()
@@ -67,7 +80,7 @@ def monitor_position(entry_price, direction, symbol="BTC/USDT", amount=0.001,
                     exchange.create_market_order(symbol, "buy", amount)
                     break
 
-            time.sleep(10)  # 每 10 秒檢查一次
+            time.sleep(10)
 
         except Exception as e:
             print(f"⚠️ 監控錯誤：{e}")
