@@ -24,7 +24,7 @@ def calculate_supertrend(df, period=10, multiplier=3):
 
 
 def fetch_ohlcv(symbol="BTC/USDT", timeframe="1h", limit=100):
-    exchange = ccxt.binance()
+    exchange = ccxt.bybit()
     since = exchange.milliseconds() - limit * 60 * 60 * 1000
     ohlcv = exchange.fetch_ohlcv(symbol, timeframe=timeframe, since=since)
     df = pd.DataFrame(ohlcv, columns=["timestamp", "Open", "High", "Low", "Close", "Volume"])
