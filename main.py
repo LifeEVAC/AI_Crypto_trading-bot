@@ -35,5 +35,11 @@ def main():
     print(f"📉 RSI: {indicators['RSI']} / MACD: {indicators['MACD']} / Supertrend: {indicators['Supertrend']}")
     print(f"📈 VWAP: {indicators['VWAP']} / ADX: {indicators['ADX']} / OBV: {indicators['OBV']}")
 
+# 下單成功後啟動監控
+order = place_order(SYMBOL, side=side, amount=0.001)
+if order:
+    monitor_position(entry_price=indicators["price"], direction=direction, symbol=SYMBOL)
+
+
 if __name__ == "__main__":
     main()
