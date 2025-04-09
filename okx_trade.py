@@ -8,7 +8,7 @@ def create_okx_client():
     return ccxt.okx({
         'apiKey': os.getenv("OKX_API_KEY"),
         'secret': os.getenv("OKX_API_SECRET"),
-        'password': os.getenv("OKX_API_PASSPHRASE"),
+        'password': os.getenv("OKX_API_PASSWORD"),
         'enableRateLimit': True,
         'options': {
             'defaultType': 'spot',  # or 'swap' for futures
