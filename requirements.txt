@@ -3,9 +3,9 @@ pandas
 numpy
 ta
 
-# 加密貨幣交易
-ccxt         # 拿歷史價格
-bybit==0.2.12  # 下單用官方 SDK
+# 加密貨幣交易（含 OKX）
+ccxt==4.1.89         # 支援 OKX 的 password 欄位
+bybit==0.2.12        # 下單用官方 SDK（目前備用）
 
 # 工具與排程（可選）
 python-dotenv
