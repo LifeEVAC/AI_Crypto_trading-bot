@@ -1,10 +1,30 @@
 import ccxt
 import pandas as pd
-from ta.trend import MACD, SuperTrend, ADXIndicator
+from ta.trend import MACD, ADXIndicator
 from ta.momentum import RSIIndicator
 from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import BollingerBands
 
+# ✅ 自訂 SuperTrend 函式
+def calculate_supertrend(df, period=10, multiplier=3.0):
+    hl2 = (df['High'] + df['Low']) / 2
+    atr = df['High'].rolling(period).max() - df['Low'].rolling(period).min()
+    atr = atr.rolling(period).mean()
+    upperband = hl2 + multiplier * atr
+    lowerband = hl2 - multiplier * atr
+    trend = []
+    for i in range(len(df)):
+        if i < period:
+            trend.append("bullish")
+        elif df['Close'][i] > upperband[i - 1]:
+            trend.append("bullish")
+        elif df['Close'][i] < lowerband[i - 1]:
+            trend.append("bearish")
+        else:
+            trend.append(trend[-1])
+    return trend
+
+# ✅ 抓取資料
 def fetch_ohlcv(symbol="BTC/USDT", timeframe="1h", limit=100):
     exchange = ccxt.okx({
         'enableRateLimit': True,
@@ -12,13 +32,13 @@ def fetch_ohlcv(symbol="BTC/USDT", timeframe="1h", limit=100):
             'defaultType': 'spot',
         }
     })
-
     since = exchange.milliseconds() - limit * 60 * 60 * 1000
     ohlcv = exchange.fetch_ohlcv(symbol, timeframe=timeframe, since=since)
     df = pd.DataFrame(ohlcv, columns=["timestamp", "Open", "High", "Low", "Close", "Volume"])
     df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
     return df
 
+# ✅ 計算所有技術指標
 def calculate_crypto_indicators(df):
     try:
         if df.empty or len(df) < 50:
@@ -36,8 +56,8 @@ def calculate_crypto_indicators(df):
         vwap = (close * volume).rolling(window=30).sum() / volume.rolling(window=30).sum()
         vwap_val = vwap.iloc[-1]
 
-        supertrend = SuperTrend(high, low, close, window=10, multiplier=3.0).super_trend()
-        supertrend_trend = "bullish" if close.iloc[-1] > supertrend.iloc[-1] else "bearish"
+        supertrend_list = calculate_supertrend(df)
+        supertrend_trend = supertrend_list[-1]
 
         adx_val = ADXIndicator(high, low, close).adx().iloc[-1]
         obv = OnBalanceVolumeIndicator(close, volume).on_balance_volume().iloc[-1]
