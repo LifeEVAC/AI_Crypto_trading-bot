@@ -30,10 +30,7 @@ def main():
 
     # ✅ Step 4：執行下單（支援模擬 or 真實下單）
     execute_orders(results, live=LIVE_TRADING)
-
-    # ✅ Step 5：寫入 Google Sheets（追蹤紀錄）
-    sync_all_to_sheet(results, is_live_trade=LIVE_TRADING)
-
+    
     print("\n✅ 本日交易完成。")
 
 if __name__ == "__main__":
