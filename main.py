@@ -2,7 +2,7 @@
 
 import os
 from crypto_symbols import get_crypto_symbols
-from indicators import calculate_all_indicators
+from indicators_btc import calculate_all_indicators
 from bitcoin_models import predict_btc_winrate
 from strategy import run_strategy
 from exchange_trade import execute_orders
