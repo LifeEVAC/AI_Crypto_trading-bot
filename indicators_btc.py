@@ -1,30 +1,22 @@
+# indicators_btc.py（使用 OKX 替代 Binance/Bybit）
+
 import ccxt
 import pandas as pd
-from ta.trend import MACD, ADXIndicator
+from ta.trend import MACD, SuperTrend, ADXIndicator
 from ta.momentum import RSIIndicator
 from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import BollingerBands
 
-# ✅ 自定義 Supertrend 函數
-def calculate_supertrend(df, period=10, multiplier=3):
-    hl2 = (df["High"] + df["Low"]) / 2
-    atr = (df["High"] - df["Low"]).rolling(period).mean()
-
-    upperband = hl2 + multiplier * atr
-    lowerband = hl2 - multiplier * atr
-
-    supertrend = [True]  # 初始狀態為多頭
-    for i in range(1, len(df)):
-        if supertrend[-1]:
-            supertrend.append(df["Close"].iloc[i] > lowerband.iloc[i])
-        else:
-            supertrend.append(df["Close"].iloc[i] > upperband.iloc[i])
-
-    return ["bullish" if val else "bearish" for val in supertrend]
-
 
 def fetch_ohlcv(symbol="BTC/USDT", timeframe="1h", limit=100):
-    exchange = ccxt.bybit()
+    exchange = ccxt.okx({
+        'enableRateLimit': True,
+        'options': {
+            'defaultType': 'spot',
+        }
+    })
+
+    # OKX 的 symbol 是格式 "BTC/USDT"
     since = exchange.milliseconds() - limit * 60 * 60 * 1000
     ohlcv = exchange.fetch_ohlcv(symbol, timeframe=timeframe, since=since)
     df = pd.DataFrame(ohlcv, columns=["timestamp", "Open", "High", "Low", "Close", "Volume"])
@@ -53,9 +45,9 @@ def calculate_crypto_indicators(df):
         vwap = (close * volume).rolling(window=30).sum() / volume.rolling(window=30).sum()
         vwap_val = vwap.iloc[-1]
 
-        # ✅ 修正：Supertrend 改用自定義
-        df["Supertrend"] = calculate_supertrend(df)
-        supertrend_trend = df["Supertrend"].iloc[-1]
+        # === Supertrend ===
+        supertrend = SuperTrend(high, low, close, window=10, multiplier=3.0).super_trend()
+        supertrend_trend = "bullish" if close.iloc[-1] > supertrend.iloc[-1] else "bearish"
 
         # === ADX ===
         adx_val = ADXIndicator(high, low, close).adx().iloc[-1]
