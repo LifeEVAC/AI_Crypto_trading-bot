@@ -1,75 +1,44 @@
-# indicators_btc.py（使用 OKX 替代 Binance/Bybit）
-
-import ccxt
+# ✅ 自訂 SuperTrend 類別（放在檔案最前面）
 import pandas as pd
-from ta.trend import MACD, SuperTrend, ADXIndicator
-from ta.momentum import RSIIndicator
-from ta.volume import OnBalanceVolumeIndicator
-from ta.volatility import BollingerBands
 
+class SuperTrend:
+    def __init__(self, high, low, close, window=10, multiplier=3):
+        self.high = high
+        self.low = low
+        self.close = close
+        self.window = window
+        self.multiplier = multiplier
 
-def fetch_ohlcv(symbol="BTC/USDT", timeframe="1h", limit=100):
-    exchange = ccxt.okx({
-        'enableRateLimit': True,
-        'options': {
-            'defaultType': 'spot',
-        }
-    })
+    def super_trend(self):
+        df = pd.DataFrame({
+            "high": self.high,
+            "low": self.low,
+            "close": self.close
+        })
 
-    # OKX 的 symbol 是格式 "BTC/USDT"
-    since = exchange.milliseconds() - limit * 60 * 60 * 1000
-    ohlcv = exchange.fetch_ohlcv(symbol, timeframe=timeframe, since=since)
-    df = pd.DataFrame(ohlcv, columns=["timestamp", "Open", "High", "Low", "Close", "Volume"])
-    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
-    return df
+        hl2 = (df["high"] + df["low"]) / 2
+        df["tr"] = pd.concat([
+            df["high"] - df["low"],
+            (df["high"] - df["close"].shift()).abs(),
+            (df["low"] - df["close"].shift()).abs()
+        ], axis=1).max(axis=1)
 
+        df["atr"] = df["tr"].rolling(self.window).mean()
+        df["upper_band"] = hl2 + self.multiplier * df["atr"]
+        df["lower_band"] = hl2 - self.multiplier * df["atr"]
 
-def calculate_crypto_indicators(df):
-    try:
-        if df.empty or len(df) < 50:
-            raise ValueError("歷史資料不足")
+        df["in_uptrend"] = True
+        for i in range(1, len(df)):
+            if df["close"][i] > df["upper_band"][i - 1]:
+                df["in_uptrend"][i] = True
+            elif df["close"][i] < df["lower_band"][i - 1]:
+                df["in_uptrend"][i] = False
+            else:
+                df["in_uptrend"][i] = df["in_uptrend"][i - 1]
+                if df["in_uptrend"][i] and df["lower_band"][i] < df["lower_band"][i - 1]:
+                    df["lower_band"][i] = df["lower_band"][i - 1]
+                if not df["in_uptrend"][i] and df["upper_band"][i] > df["upper_band"][i - 1]:
+                    df["upper_band"][i] = df["upper_band"][i - 1]
 
-        close = df["Close"]
-        high = df["High"]
-        low = df["Low"]
-        volume = df["Volume"]
-
-        # === RSI ===
-        rsi = RSIIndicator(close).rsi().iloc[-1]
-
-        # === MACD ===
-        macd_diff = MACD(close).macd_diff().iloc[-1]
-        macd_trend = "bullish" if macd_diff > 0 else "bearish"
-
-        # === VWAP ===
-        vwap = (close * volume).rolling(window=30).sum() / volume.rolling(window=30).sum()
-        vwap_val = vwap.iloc[-1]
-
-        # === Supertrend ===
-        supertrend = SuperTrend(high, low, close, window=10, multiplier=3.0).super_trend()
-        supertrend_trend = "bullish" if close.iloc[-1] > supertrend.iloc[-1] else "bearish"
-
-        # === ADX ===
-        adx_val = ADXIndicator(high, low, close).adx().iloc[-1]
-
-        # === OBV ===
-        obv = OnBalanceVolumeIndicator(close, volume).on_balance_volume().iloc[-1]
-
-        # === BB Width ===
-        bb = BollingerBands(close)
-        bb_width = (bb.bollinger_hband() - bb.bollinger_lband()).iloc[-1] / close.iloc[-1]
-
-        return {
-            "RSI": round(rsi, 2),
-            "MACD": macd_trend,
-            "VWAP": round(vwap_val, 2),
-            "Supertrend": supertrend_trend,
-            "ADX": round(adx_val, 2),
-            "OBV": round(obv, 2),
-            "BB_width": round(bb_width, 4),
-            "price": round(close.iloc[-1], 2)
-        }
-
-    except Exception as e:
-        print(f"❌ 指標錯誤: {e}")
-        return {}
+        trend = ["bullish" if x else "bearish" for x in df["in_uptrend"]]
+        return pd.Series(trend, index=df.index)
