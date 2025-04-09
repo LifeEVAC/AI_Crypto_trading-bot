@@ -1,4 +1,16 @@
-yfinance
+# AI / 數據分析
+pandas
+numpy
+ta
+ccxt
+
+# Bybit API SDK
+bybit==0.2.12
+
+# Google Sheets 支援（如需寫入）
 gspread
 oauth2client
-pandas
+
+# 環境變數與排程（可選）
+python-dotenv
+schedule
