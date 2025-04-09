@@ -1,78 +1,60 @@
-# 胜率預測模型
-# models.py
+# bitcoin_models.py
 
-def predict_winrate(indicators, direction="long"):
+def predict_btc_winrate(indicators, direction="long"):
     """
-    根據技術指標與方向，回傳預測勝率（0.0 ~ 0.95）
+    專業版 Bitcoin 核心策略邏輯：
+    - 著重動能、趨勢、爆發力、主力參與度
+    - 精簡高信賴指標，專為 BTC scalping 最佳化
+    - 預測勝率介於 0.5 ～ 0.95
     """
 
     score = 0
     total = 0
 
-    # ===== 基礎指標分數 =====
-    if direction == "long":
-        if indicators["RSI"] > 55: score += 1
-        if indicators["MACD"] == "bullish": score += 1
-        if indicators["MA_cross"] == "golden": score += 1
-        if indicators["BB_B"] > 0.5: score += 1
-        if indicators["ADX"] > 20 and indicators["+DI"] > indicators["-DI"]: score += 1
-        if indicators["CCI"] > 0: score += 1
-        if indicators["STOCH_K"] > 50: score += 1
-        if indicators["OBV"] > 0: score += 1
-        if indicators["BB_width"] > 0.03: score += 1
-        if indicators["ATR"] > 0: score += 1
-        if indicators["Volume_surge"]: score += 1
-        total = 11
+    # ✅ 核心指標（必要）
+    # [1] Supertrend 趨勢方向
+    if indicators.get("Supertrend") == ("bullish" if direction == "long" else "bearish"):
+        score += 1
+    total += 1
 
-    else:
-        if indicators["RSI"] < 45: score += 1
-        if indicators["MACD"] == "bearish": score += 1
-        if indicators["MA_cross"] == "death": score += 1
-        if indicators["BB_B"] < 0.5: score += 1
-        if indicators["ADX"] > 20 and indicators["-DI"] > indicators["+DI"]: score += 1
-        if indicators["CCI"] < 0: score += 1
-        if indicators["STOCH_K"] < 50: score += 1
-        if indicators["OBV"] < 0: score += 1
-        if indicators["BB_width"] > 0.03: score += 1
-        if indicators["ATR"] > 0: score += 1
-        if indicators["Volume_surge"]: score += 1
-        total = 11
+    # [2] RSI 動能方向
+    if direction == "long" and indicators.get("RSI", 50) > 55:
+        score += 1
+    elif direction == "short" and indicators.get("RSI", 50) < 45:
+        score += 1
+    total += 1
 
-    # ===== 超級指標邏輯（每命中一組 +1 分）=====
-    super_score = 0
+    # [3] MACD 多空轉折
+    if indicators.get("MACD") == ("bullish" if direction == "long" else "bearish"):
+        score += 1
+    total += 1
 
-    if direction == "long":
-        if (
-            indicators["RSI"] > 55 and
-            indicators["MACD"] == "bullish" and
-            indicators["MA_cross"] == "golden"
-        ):
-            super_score += 1  # 多頭三重奏
+    # [4] VWAP 位置判斷（主力成本）
+    if direction == "long" and indicators.get("price", 0) > indicators.get("VWAP", 0):
+        score += 1
+    elif direction == "short" and indicators.get("price", 0) < indicators.get("VWAP", 0):
+        score += 1
+    total += 1
 
-        if (
-            indicators["ADX"] > 25 and
-            indicators["+DI"] > indicators["-DI"] and
-            indicators["OBV"] > 0
-        ):
-            super_score += 1  # 趨勢能量共振
+    # ✅ 強信心條件（加分機制）
+    # [5] ADX 趨勢強度
+    if indicators.get("ADX", 0) > 25:
+        score += 0.5
+    total += 0.5
 
-    else:
-        if (
-            indicators["RSI"] < 45 and
-            indicators["MACD"] == "bearish" and
-            indicators["MA_cross"] == "death"
-        ):
-            super_score += 1  # 空頭三重奏
+    # [6] OBV 多空能量趨勢
+    if direction == "long" and indicators.get("OBV", 0) > 0:
+        score += 0.5
+    elif direction == "short" and indicators.get("OBV", 0) < 0:
+        score += 0.5
+    total += 0.5
 
-        if (
-            indicators["ADX"] > 25 and
-            indicators["-DI"] > indicators["+DI"] and
-            indicators["OBV"] < 0
-        ):
-            super_score += 1  # 趨勢放空共振
+    # [7] 布林帶壓縮準備爆發
+    if indicators.get("BB_width", 1) < 0.03:
+        score += 0.5
+    total += 0.5
 
-    # ===== 最終勝率計算 =====
-    base_winrate = 0.6 + 0.03 * score  # 每個指標給 3%
-    total_winrate = base_winrate + 0.025 * super_score  # 每個超級指標給 2.5%
-
-    return round(min(total_winrate, 0.95), 3)
+    # === 勝率推估 ===
+    base = 0.5
+    boost = (score / total) * 0.45  # 最多額外 +0.45
+    return round(min(base + boost, 0.95), 3)
