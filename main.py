@@ -46,8 +46,8 @@ def main():
         print(f"\n🚀 勝率達標 → 市價下單 {direction.upper()} × {TRADE_AMOUNT} BTC")
         side = "buy" if direction == "long" else "sell"
         order = place_order(SYMBOL, side=side, amount=TRADE_AMOUNT)
-        if order:
-            monitor_position(
+        #if order:
+            #monitor_position(
                 entry_price=indicators["price"],
                 direction=direction,
                 symbol=SYMBOL,
