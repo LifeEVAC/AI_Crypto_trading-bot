@@ -1,37 +1,36 @@
-# main.py
-
-import os
-from crypto_symbols import get_crypto_symbols
-from indicators_btc import calculate_all_indicators
+from indicators_btc import fetch_ohlcv, calculate_crypto_indicators
 from bitcoin_models import predict_btc_winrate
-from strategy import run_strategy
-from exchange_trade import execute_orders
-from sheets_writer import sync_all_to_sheet
 
 def main():
-    print("🚀 啟動 AI 加密貨幣交易機器人...\n")
+    print("🚀 啟動 AI Bitcoin Scalping 策略...")
 
-    # ✅ Step 1：取得加密貨幣追蹤清單（可修改為 top10, 自選清單等）
-    symbols = get_crypto_symbols()
+    # 抓取 BTC 近 100 小時資料（1h K 線）
+    df = fetch_ohlcv("BTC/USDT", "1h", limit=100)
 
-    # ✅ Step 2：進行策略分析（傳入 symbol、分析指標、預測勝率）
-    results = run_strategy(
-        symbols=symbols,
-        indicator_func=calculate_all_indicators,
-        model_func=predict_btc_winrate
-    )
+    # 計算指標
+    indicators = calculate_crypto_indicators(df)
 
-    if not results:
-        print("⚠️ 今日無推薦交易。")
+    if not indicators:
+        print("⚠️ 無法取得指標，策略終止")
         return
 
-    # ✅ Step 3：是否進行真實交易？
-    LIVE_TRADING = False  # 若要真實下單，改成 True 並設定 API 金鑰
+    price = indicators["price"]
 
-    # ✅ Step 4：執行下單（支援模擬 or 真實下單）
-    execute_orders(results, live=LIVE_TRADING)
-    
-    print("\n✅ 本日交易完成。")
+    # 做多 / 做空 預測勝率
+    long_prob = predict_btc_winrate(indicators, direction="long")
+    short_prob = predict_btc_winrate(indicators, direction="short")
+
+    print("📊 當前價格：$", price)
+    print("📈 做多勝率：", long_prob)
+    print("📉 做空勝率：", short_prob)
+
+    # 決策邏輯
+    if long_prob >= 0.75 and long_prob > short_prob:
+        print(f"✅ 建議做多（勝率 {long_prob}）")
+    elif short_prob >= 0.75 and short_prob > long_prob:
+        print(f"✅ 建議做空（勝率 {short_prob}）")
+    else:
+        print("🟡 尚未達下單門檻，觀望中...")
 
 if __name__ == "__main__":
     main()
