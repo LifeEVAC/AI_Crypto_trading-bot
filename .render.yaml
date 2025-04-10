@@ -1,0 +1,12 @@
+services:
+  - type: background
+    name: AI_Crypto_trading-bot
+    env: python
+    plan: standard
+    buildCommand: ""
+    startCommand: python main.py
+
+jobs:
+  - name: run-trading-bot
+    schedule: "*/15 * * * *"  # 每15分鐘執行一次
+    command: python main.py
