@@ -1,4 +1,4 @@
-# main.py — 搭配 OKX 現貨交易 + BTC Scalping 策略
+# main.py — 搭配 OKX 現貨交易 + BTC Scalping 策略（策略 C 強化版）
 
 from indicators_btc import fetch_ohlcv, calculate_crypto_indicators
 from bitcoin_models import predict_btc_winrate
@@ -7,9 +7,9 @@ import threading
 
 SYMBOL = "BTC/USDT"
 TRADE_AMOUNT = 0.001  # 每次交易金額（可調整）
-TP_PERCENT = 0.02     # 止盈 +2%
-SL_PERCENT = 0.015    # 止損 -1.5%
-MIN_WINRATE = 0.8     # 最小進場勝率條件
+TP_PERCENT = 0.03     # ✅ 策略 C 止盈 +3%
+SL_PERCENT = 0.025    # ✅ 策略 C 止損 -2.5%
+MIN_WINRATE = 0.82    # ✅ 提高進場條件至 82%
 
 def main():
     print("📈 取得 BTC 歷史資料...")
