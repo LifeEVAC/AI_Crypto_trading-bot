@@ -1,7 +1,7 @@
 # strategy_btc.py
 
 from indicators import calculate_crypto_indicators
-from bitcoin_models import predict_btc_winrate
+from logic_winrate import logic_predict_winrate  # ✅ 替代原模型預測
 
 def run_strategy(crypto_list):
     print("\n🎯 開始分析比特幣 scalping 機會...")
@@ -21,17 +21,19 @@ def run_strategy(crypto_list):
             print(f"⚠️ {symbol} 無法取得價格或指標\n")
             continue
 
-        # 預測做多 / 做空勝率
-        win_long = predict_btc_winrate(indicators, direction="long")
-        win_short = predict_btc_winrate(indicators, direction="short")
+        # ✅ 使用邏輯式勝率預測系統
+        win_long, reason_long = logic_predict_winrate(indicators, direction="long")
+        win_short, reason_short = logic_predict_winrate(indicators, direction="short")
 
         # 選擇較高勝率方向
         if win_long >= win_short:
             direction = "long"
             winrate = win_long
+            reasons = reason_long
         else:
             direction = "short"
             winrate = win_short
+            reasons = reason_short
 
         if winrate < 0.65:
             print(f"❌ {symbol} 勝率過低（{winrate}），略過\n")
@@ -56,10 +58,13 @@ def run_strategy(crypto_list):
             "score": round((winrate - 0.5) / 0.45, 3),  # 正規化分數 0～1
             "tp_pct": tp_pct,
             "sl_pct": sl_pct,
-            "indicators": indicators
+            "indicators": indicators,
+            "reasons": reasons
         }
 
-        print(f"✅ {symbol} → {direction.upper()} ｜勝率: {winrate}，TP: {tp_price}，SL: {sl_price}\n")
+        print(f"✅ {symbol} → {direction.upper()} ｜勝率: {winrate}，TP: {tp_price}，SL: {sl_price}")
+        print(f"📋 原因：{', '.join(reasons)}\n")
+
         selected.append(result)
 
     return selected
